@@ -4,13 +4,17 @@ GitHub Pages용 단일 파일 주식 대시보드입니다. AI · 로봇 · 원�
 
 ## 게시 방법
 
-1. 이 폴더의 `dashboard-v2.html`(과 원하면 `index.html`)을 GitHub 저장소 루트에 업로드합니다.
-2. 저장소의 **Settings → Pages**로 이동합니다.
-3. **Deploy from a branch**, `main`, `/ (root)`를 선택하고 저장합니다.
+**Vercel (현재 운영 중).** 이 저장소의 `main`이 https://stockdashboardoverview.vercel.app 로
+배포됩니다. `main`에 push하면 프로덕션 배포가 자동으로 돕니다. 별도 빌드 설정은 없습니다.
 
-별도 빌드나 패키지 설치가 필요하지 않습니다. 화면 설정(테마·시장·워치리스트·보기 모드)은 방문자의 브라우저 `localStorage`에 저장됩니다.
+**GitHub Pages.** Settings → Pages → Deploy from a branch → `main` / `(root)`.
+`api/yahoo.js`는 서버리스 함수라 Pages에서는 동작하지 않지만, 아래 프록시 체인이
+자동으로 공개 리더로 넘어가므로 화면은 그대로 뜹니다.
 
-`index.html`은 `dashboard-v2.html`로 자동 이동합니다.
+`index.html`과 `dashboard-v2.html`은 **같은 파일**입니다. 루트 URL과 기존 주소를 모두
+살려두기 위한 것이고, `refresh_quotes.py`가 둘 다 갱신합니다.
+
+화면 설정(테마·시장·워치리스트·보기 모드)은 방문자의 브라우저 `localStorage`에 저장됩니다.
 
 ## 시세 데이터
 
@@ -26,7 +30,13 @@ python3 refresh_quotes.py
 
 **2단 — 브라우저 실시간 갱신.** 페이지를 열면 현재 화면에 보이는 종목(선택 종목 + 목록 상위 60개)의 시세를 다시 불러오고, 탭이 활성 상태인 동안 60초마다 갱신합니다. 성공하면 상단 배지가 `LIVE`로 바뀌고, 실패하면 내장 스냅샷 값을 그대로 유지한 채 스냅샷 경과 시간을 표시합니다. 스냅샷이 3일보다 오래되면 배지가 노란색으로 바뀌며 `refresh_quotes.py` 실행을 안내합니다.
 
-Yahoo Finance는 CORS 헤더를 보내지 않아 정적 페이지에서 직접 호출할 수 없습니다. 그래서 브라우저 요청만 공개 리더(`r.jina.ai`)를 경유합니다. 리더가 죽어도 1단 데이터로 동작합니다.
+Yahoo Finance는 CORS 헤더를 보내지 않아 정적 페이지에서 직접 호출할 수 없습니다. 그래서 브라우저 요청은 프록시 체인을 순서대로 시도합니다.
+
+1. `api/yahoo.js` — 같은 도메인의 Vercel 서버리스 프록시. 야후 `query1/query2`의 읽기 전용 엔드포인트만 허용하는 화이트리스트이고, 그 외 주소는 403으로 거절합니다. 가장 빠른 경로.
+2. `r.jina.ai` — 공개 리더. Pages·`file://`처럼 1번이 404일 때.
+3. `api.allorigins.win` — 2번도 죽었을 때.
+
+전부 실패해도 1단 내장 스냅샷으로 동작하고, 상단 `데이터 상태` 줄에 연결·스냅샷·미연결 종목 수가 그대로 표시됩니다.
 
 RSI·이동평균은 받아온 일봉 종가로 직접 계산하며, 실시간 가격이 들어오면 마지막 종가를 갈아끼워 지표도 함께 움직입니다.
 

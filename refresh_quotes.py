@@ -42,6 +42,10 @@ from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).resolve().parent
 HTML_PATH = HERE / "dashboard-v2.html"
+# The Vercel deploy serves index.html; dashboard-v2.html is the same file under
+# its original name. Mirror the refreshed build into both or the site keeps
+# serving the stale snapshot while this script reports success.
+MIRROR_PATHS = [HERE / "index.html"]
 
 # Keep this exactly as-is. Yahoo 429s a full Chrome UA string (and an absent
 # one) while answering the bare token instantly — same URL, same IP, same
@@ -464,6 +468,8 @@ def main():
         print(f"  new size: {size_mb:.2f}MB")
 
     HTML_PATH.write_text(new_html, encoding="utf-8")
+    for mirror in MIRROR_PATHS:
+        mirror.write_text(new_html, encoding="utf-8")
     print(f"Wrote {HTML_PATH} ({len(new_html.encode('utf-8')) / 1024:.1f} KB, "
           f"{size_mb:.2f} MB) — UPDATED={today}, LIVE_ASOF={live_asof}")
 
